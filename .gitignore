@@ -127,6 +127,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+*.cfg
+bin/
+lib/
+lib64
 
 # Spyder project settings
 .spyderproject
