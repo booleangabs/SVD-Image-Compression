@@ -35,6 +35,7 @@ from tkinter import (
 import tkinter as tk
 from PIL import Image, ImageTk
 from tkinter.filedialog import askopenfilename
+from metrics import get_metrics
 
 class App(Tk):
     def __init__(self):
@@ -47,10 +48,12 @@ class App(Tk):
         self.image_field = Label(self.root, pady=25)
         self.image_field.pack(pady=50)
         
-        self.psnr_report = Label(self.root, text="PSNR (dB): X", font=("Arial", 14))
+        text_psnr = "PSNR (dB): ranges from 0 to infinity, higher is better!"
+        self.psnr_report = Label(self.root, text=text_psnr, font=("Arial", 14))
         self.psnr_report.pack()
 
-        self.ssim_report = Label(self.root, text="SSIM: X", font=("Arial", 14))
+        text_ssim = "SSIM: ranges from -1 to 1, higher is better!"
+        self.ssim_report = Label(self.root, text=text_ssim, font=("Arial", 14))
         self.ssim_report.pack()
         
         self.ratio_report = Label(self.root, text="Compression ratio: X", font=("Arial", 14))
@@ -60,56 +63,68 @@ class App(Tk):
         self.control_panel.pack(side = BOTTOM, padx= 25, pady= 25)
 
         self.button_select = Button(self.control_panel, text = "Select Image", 
-                                    command = self.showImage, font = ("Arial", 14))
+                                    command = self.show_image, font = ("Arial", 14))
         self.button_select.pack()
 
-        self.button_metrics = Button(self.control_panel, text = "Calculate metrics",
-                                     command = self.getMetrics, font = ("Arial", 14))
-        self.button_metrics.pack()
+        # IMPORTANT: Use the following lines if automatically computing metrics gets slow
+        # self.button_metrics = Button(self.control_panel, text = "Calculate metrics",
+        #                              command = self.show_metrics, font = ("Arial", 14))
+        # self.button_metrics.pack()
 
         self.slider_label = tk.Label(self.control_panel, text = "Target rank (k)", 
                           font = ("Arial", 14))
         self.slider_label.pack()
 
         self.slider = Scale(self.control_panel, from_= 0, to = 255, orient = HORIZONTAL, 
-                       tickinterval=50, length=500, command=self.updateImage)
+                       tickinterval=50, length=500, command=self.update_image)
         self.slider.set(10)
         self.slider.pack()
         
         self.image = None
+        self.uncompressed_image = None
+        self.compressed_image = None
         
-    def showImage(self):
+    def show_image(self):
         global path 
         working_dir = os.getcwd()
         path = askopenfilename(initialdir = working_dir, title = "Select Image", 
                                filetypes = (("PNG files", "*.png*"), ("all files", "*.*")))
         self.image = Image.open(path)
+        self.image = self.image.convert("L")
+        self.uncompressed_image = np.asarray(self.image)
         self.image.thumbnail((400, 400))
-        self.image_array = np.asarray(self.image)
-        self.image = ImageTk.PhotoImage(self.image)
-        self.image_field.configure(image = self.image)
-        self.image_field.image = self.image
+        image = ImageTk.PhotoImage(self.image)
+        self.image_field.configure(image = image)
+        self.image_field.image = image
         
-    def updateImage(self, slider_value):
+    def update_image(self, slider_value):
         if self.image == None:
             return
 
         # Do stuff here
-        if len(self.image_array.shape) > 2:
-            image = self.image_array.mean(2).astype("uint8")
+        if len(self.uncompressed_image.shape) > 2:
+            image = self.uncompressed_image.mean(2).astype("uint8")
         else:
-            image = self.image_array.copy()
+            image = self.uncompressed_image.copy()
         image = image * (image >= int(slider_value))
         # Stop doing stuff
         
+        self.compressed_image = image.copy()
+        
         # Update label image
         image = Image.fromarray(image.astype("uint8"))
+        image.thumbnail((400, 400))
         image = ImageTk.PhotoImage(image)
         self.image_field.configure(image = image)
         self.image_field.image = image
+        self.show_metrics() # IMPORTANT: comment this if it gets too slow
         
-    def getMetrics(self):
-        image_array = np.asarray(self.image)
+    def show_metrics(self):
+        if self.uncompressed_image is None or self.compressed_image is None:
+            return
+        metrics = get_metrics(self.uncompressed_image, self.compressed_image)
+        self.psnr_report.config(text=f"PSNR (dB): {metrics['psnr']}")
+        self.ssim_report.config(text=f"SSIM: {metrics['ssim']}")
 
     def run(self):
         self.root.mainloop()

@@ -131,6 +131,7 @@ venv.bak/
 bin/
 lib/
 lib64
+share
 
 # Spyder project settings
 .spyderproject
