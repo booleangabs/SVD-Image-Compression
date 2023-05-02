@@ -47,6 +47,8 @@ class App(Tk):
 
         self.image_field = Label(self.root, pady=25)
         self.image_field.pack(pady=50)
+        self.image_field.bind("<Enter>", func=self.__show_original)
+        self.image_field.bind("<Leave>", func=self.__show_compressed)
         
         text_psnr = "PSNR (dB): ranges from 0 to infinity, higher is better!"
         self.psnr_report = Label(self.root, text=text_psnr, font=("Arial", 14))
@@ -63,7 +65,7 @@ class App(Tk):
         self.control_panel.pack(side = BOTTOM, padx= 25, pady= 25)
 
         self.button_select = Button(self.control_panel, text = "Select Image", 
-                                    command = self.show_image, font = ("Arial", 14))
+                                    command = self.get_image, font = ("Arial", 14))
         self.button_select.pack()
 
         # IMPORTANT: Use the following lines if automatically computing metrics gets slow
@@ -77,14 +79,31 @@ class App(Tk):
 
         self.slider = Scale(self.control_panel, from_= 0, to = 255, orient = HORIZONTAL, 
                        tickinterval=50, length=500, command=self.update_image)
-        self.slider.set(10)
+        self.slider.set(0)
         self.slider.pack()
         
         self.image = None
         self.uncompressed_image = None
         self.compressed_image = None
         
-    def show_image(self):
+    def __show_original(self, *args, **kwargs):
+        if not(self.image is None):
+            self.__update_image_field()
+        
+    def __show_compressed(self, *args, **kwargs):
+        if not(self.compressed_image is None) and (self.slider.get() > 0):
+            image = Image.fromarray(self.compressed_image)
+            self.__update_image_field(image)
+            
+    def __update_image_field(self, image=None):
+        if image == None:
+            image = self.image.copy()
+        image.thumbnail((400, 400))
+        pimage = ImageTk.PhotoImage(image)
+        self.image_field.configure(image = pimage)
+        self.image_field.image = pimage
+        
+    def get_image(self):
         global path 
         working_dir = os.getcwd()
         path = askopenfilename(initialdir = working_dir, title = "Select Image", 
@@ -92,32 +111,31 @@ class App(Tk):
         self.image = Image.open(path)
         self.image = self.image.convert("L")
         self.uncompressed_image = np.asarray(self.image)
-        self.image.thumbnail((400, 400))
-        image = ImageTk.PhotoImage(self.image)
-        self.image_field.configure(image = image)
-        self.image_field.image = image
+        k = min(self.uncompressed_image.shape[:2])
+        self.slider.config(to=k, length=min(500, k))
+        self.__update_image_field()
         
     def update_image(self, slider_value):
         if self.image == None:
             return
-
-        # Do stuff here
-        if len(self.uncompressed_image.shape) > 2:
-            image = self.uncompressed_image.mean(2).astype("uint8")
+        
+        value = int(slider_value)
+        
+        if value > 0:
+            # Do stuff here
+            image = np.asarray(self.image)
+            image = image * (value / self.slider.cget("length"))
+            image = image.astype("uint8")
+            # Stop doing stuff
+            
+            self.compressed_image = image.copy()
+            
+            # Update label image
+            image = Image.fromarray(image)
+            self.__update_image_field(image)
+            self.show_metrics() # IMPORTANT: comment this if it gets too slow
         else:
-            image = self.uncompressed_image.copy()
-        image = image * (image >= int(slider_value))
-        # Stop doing stuff
-        
-        self.compressed_image = image.copy()
-        
-        # Update label image
-        image = Image.fromarray(image.astype("uint8"))
-        image.thumbnail((400, 400))
-        image = ImageTk.PhotoImage(image)
-        self.image_field.configure(image = image)
-        self.image_field.image = image
-        self.show_metrics() # IMPORTANT: comment this if it gets too slow
+            self.__show_original()
         
     def show_metrics(self):
         if self.uncompressed_image is None or self.compressed_image is None:
@@ -125,6 +143,7 @@ class App(Tk):
         metrics = get_metrics(self.uncompressed_image, self.compressed_image)
         self.psnr_report.config(text=f"PSNR (dB): {metrics['psnr']}")
         self.ssim_report.config(text=f"SSIM: {metrics['ssim']}")
+        c = int(self.slider.get())
 
     def run(self):
         self.root.mainloop()
