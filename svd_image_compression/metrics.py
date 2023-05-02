@@ -26,17 +26,23 @@ from skimage.metrics import (
     peak_signal_noise_ratio,
     structural_similarity
 )
+import warnings
+warnings.filterwarnings("ignore")
 
-def get_metrics(uncompressed, compressed):
+
+def get_metrics(uncompressed, compressed, full_report = True):
     metrics = {
         "psnr": 0,
         "ssim": 0,
         "compression": 0
     }
-    if np.allclose(uncompressed, compressed, 1e-6):
-        metrics["psnr"] = np.inf
-    else:
-        metrics["psnr"] = peak_signal_noise_ratio(uncompressed, compressed)
-    metrics["ssim"] = structural_similarity(uncompressed, compressed)
-    # TODO: add measure of memory usage after and before compression
+    metrics["psnr"] = np.round(
+                        peak_signal_noise_ratio(uncompressed, compressed),
+                        5
+                      )
+    if full_report:
+        metrics["ssim"] = np.round(
+                            structural_similarity(uncompressed, compressed, channel_axis=-1),
+                            5
+                          )
     return metrics
