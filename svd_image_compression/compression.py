@@ -1,42 +1,26 @@
 import numpy as np
-import numpy.typing as npt
 
+import matplotlib.pyplot as plt
+import matplotlib.image as image
 
-class SVDTerm:
-    sing_value: np.float32                 # sigma
-    left_vector: npt.NDArray[np.float32]   # u
-    right_vector: npt.NDArray[np.float32]  # v
+def compressing(U, S, VT, k):
+    return (U[:,:k] @ np.diag(S[:k])) @ VT[:k]
+
+def compress_image(img_name, _target_rank):
+
+    R = img_name[:, :, 0]
+    G = img_name[:, :, 1]
+    B = img_name[:, :, 2]
+
+    R_U, R_S, R_VT = np.linalg.svd(R)
+    G_U, G_S, G_VT = np.linalg.svd(G)
+    B_U, B_S, B_VT = np.linalg.svd(B)
     
-    def __init__(self, sigma: np.float32, u: npt.NDArray[np.float32], v: npt.NDArray[np.float32]):
-        """A term in the SVD decomposition of an n x d matrix ('n' rows and 'd' columns).
-
-        Args:
-            sigma (np.float32): singular value
-            u (npt.NDArray[np.float32]): n x 1 column matrix
-            v (npt.NDArray[np.float32]): d x 1 column matrix
-        """
-        self.sing_value = sigma
-        self.left_vector = u
-        self.right_vector = v
+    R_compressed = compressing(R_U, R_S, R_VT, _target_rank)
+    G_compressed = compressing(G_U, G_S, G_VT, _target_rank)
+    B_compressed = compressing(B_U, B_S, B_VT, _target_rank)
     
-    def expanded(self) -> npt.NDArray:
-        """Return the expanded matrix associated with this term.
-        The expanded matrix has the same dimensions as the original
-        matrix.
-
-        Returns:
-            npt.NDArray: the n x d matrix associated with this term.
-        """
-
-
-def SVD(A: npt.NDArray[np.float32]) -> list[SVDTerm]:
-    """Return the singular value decomposition of (n x d) matrix A as a
-    list of the decomposition terms, σ・u・vᵀ
-
-    Args:
-        A (npt.NDArray[np.float32]): A (n x d) matrix ('n' rows and 'd' columns)
-
-    Returns:
-        list[SVDTerm]: A list of of the decomposition terms. When the terms are
-        expanded() and summed, the result equals A.
-    """
+    compressed_float = np.dstack((R_compressed, G_compressed, B_compressed))
+    compressed = (np.minimum(compressed_float, 1.0) * 0xff).astype(np.uint8)
+    
+    image.imsave("compressed.png", compressed)

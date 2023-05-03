@@ -23,6 +23,11 @@ SOFTWARE.
 
 import os
 import numpy as np
+import matplotlib as plt
+import matplotlib.image as imag3
+import cv2
+import compression as hc
+
 from tkinter import (
     Tk, 
     Label, 
@@ -87,8 +92,10 @@ class App(Tk):
         self.slider.bind("<ButtonRelease-1>", func = self.update_image)
         
         self.image = None
+        self.image_helper = None
         self.uncompressed_image = None
         self.compressed_image = None
+        self.opencv_img_ffunc = None
         
     def __show_original(self, *args, **kwargs):
         if not(self.image is None):
@@ -100,7 +107,7 @@ class App(Tk):
             self.__update_image_field(image)
             
     def __update_image_field(self, image=None):
-        if image == None:
+        if not image:
             image = self.image.copy()
         h = 350
         wp = h / image.size[1]
@@ -115,32 +122,41 @@ class App(Tk):
         working_dir = os.getcwd()
         path = askopenfilename(initialdir = working_dir, title = "Select Image", 
                                filetypes = (("PNG files", "*.png*"), ("all files", "*.*")))
+        
+        #!!
         self.image = Image.open(path).convert("RGB")
+        self.image_helper = imag3.imread(path)
         self.uncompressed_image = np.asarray(self.image)
+        #!!
+
         k = min(self.uncompressed_image.shape[:2])
         self.slider.config(to=k, length=min(500, k))
         self.slider.set(0)
         self.__update_image_field()
-        
+
+    def svd_send(self):
+        sent_img = self.image_helper
+        target_rank = self.slider.get()
+        compressed_img = hc.compress_image(sent_img, target_rank)
+        return compressed_img
+
     def update_image(self, slider_value, *args, **kwargs):
         if self.image == None:
             return
         
         self.info.config(text="Hover to see original image")
-        
         value = self.slider.get()
-        
         image = self.uncompressed_image
         if value > 0:
+
             # Do stuff here
-            image = image * (value / self.slider.cget("to"))
-            image = image.astype("uint8")
+            showimg = self.svd_send()
             # Stop doing stuff
             
-            self.compressed_image = image.copy()
+            self.compressed_image = showimg
             
             # Update label image
-            image = Image.fromarray(image)
+            image = showimg
             self.__update_image_field(image)
             
         else:
@@ -172,6 +188,4 @@ class App(Tk):
 if __name__ == "__main__":
     app = App()
     app.run()
-
-    
 
