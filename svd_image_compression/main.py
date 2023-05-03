@@ -116,7 +116,7 @@ class App(Tk):
         working_dir = os.getcwd()
         path = askopenfilename(initialdir = working_dir, title = "Select Image", 
                                filetypes = (("PNG files", "*.png*"), ("all files", "*.*")))
-        self.image = Image.open(path)
+        self.image = Image.open(path).convert("RGB")
         self.uncompressed_image = np.asarray(self.image)
         k = min(self.uncompressed_image.shape[:2])
         self.slider.config(to=k, length=min(500, k))
@@ -131,7 +131,7 @@ class App(Tk):
         
         value = int(slider_value)
         
-        image = np.asarray(self.image)
+        image = self.uncompressed_image
         if value > 0:
             # Do stuff here
             image = image * (value / self.slider.cget("to"))
