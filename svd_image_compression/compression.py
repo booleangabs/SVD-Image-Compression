@@ -98,10 +98,10 @@ def SVD(A: npt.NDArray[np.float32], use_numpy=False) -> list[SVDTerm]:
 # test
 if __name__ == "__main__":
     A = [
-        [1 ],
-        [2],
-        [3],
-        [4]
+        [1, 0, -1, 4],
+        [-2, 1, 4, 3],
+        [-2, 1, 4, -3],
+        [-2, 5, 4, 3]
     ]
     A = np.array(A, dtype=np.float32)
     terms = SVD(A, False)
