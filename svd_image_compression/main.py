@@ -40,9 +40,7 @@ import sys
 
 
 class App(Tk):
-    def __init__(self, full_report):
-        self.full = full_report
-        
+    def __init__(self):
         self.root = Tk()
         self.root.title("SVD Image Compression")
         width = self.root.winfo_screenwidth()               
@@ -86,6 +84,7 @@ class App(Tk):
                        tickinterval=50, length=500, command=self.update_image)
         self.slider.set(0)
         self.slider.pack()
+        self.slider.bind("<ButtonRelease-1>", func = self.show_metrics)
         
         self.image = None
         self.uncompressed_image = None
@@ -147,12 +146,12 @@ class App(Tk):
         else:
             self.__show_original()
             self.compressed_image = image.copy()
-        self.show_metrics() # IMPORTANT: comment this if it gets too slow
+        #self.show_metrics() # IMPORTANT: comment this if it gets too slow
         
-    def show_metrics(self):
+    def show_metrics(self, *args, **kwargs):
         if self.uncompressed_image is None or self.compressed_image is None:
             return
-        metrics = get_metrics(self.uncompressed_image, self.compressed_image, self.full)
+        metrics = get_metrics(self.uncompressed_image, self.compressed_image)
         self.psnr_report.config(text="PSNR (dB):" + f"{metrics['psnr']}".rjust(22))
         self.ssim_report.config(text="SSIM:" + f"{metrics['ssim']}".rjust(30))
         k = self.slider.get()
@@ -171,10 +170,7 @@ class App(Tk):
 
 
 if __name__ == "__main__":
-    full_report = True
-    if len(sys.argv) > 1:
-        full_report = bool(int(sys.argv[1]))
-    app = App(full_report)
+    app = App()
     app.run()
 
     
