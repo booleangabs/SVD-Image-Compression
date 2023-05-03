@@ -9,7 +9,6 @@ eps = 1e-6
 def is_zero(x: float) -> bool:
     return abs(x) < eps
 
-
 def formated_list(lst: list[float]) -> str:
     if(hasattr(lst[0], '__iter__')):
         return str([formated_list(l) for l in lst])
@@ -33,7 +32,7 @@ class SVDTerm:
         self.left_vector = u
         self.right_vector = v
     
-    def expanded(self) -> npt.NDArray:
+    def expanded(self) -> npt.NDArray[np.float32]:
         """Return the expanded matrix associated with this term.
         The expanded matrix has the same dimensions as the original
         matrix.
@@ -49,7 +48,6 @@ class SVDTerm:
             formated_list(self.left_vector),
             formated_list(self.right_vector.T)
         )
-
 
 def SVD(A: npt.NDArray[np.float32], use_numpy=False) -> list[SVDTerm]:
     """Return the singular value decomposition of (n x d) matrix A as a
@@ -94,6 +92,14 @@ def SVD(A: npt.NDArray[np.float32], use_numpy=False) -> list[SVDTerm]:
         terms.sort(key=lambda term: term.sing_value, reverse=True)
         return terms
 
+def sum_terms(term_list: list[SVDTerm], how_many: int = -1) -> npt.NDArray[np.float32]:
+    if how_many == -1:
+        how_many = len(term_list)
+    assert how_many <= len(term_list), "There are not enough terms in the list to sum"
+    a_term = term_list[0]
+    m = a_term.left_vector.shape[0]
+    n = a_term.right_vector.shape[0]
+    return reduce(lambda Ak, term: Ak + term.expanded(), terms[0:how_many], np.zeros((m, n)))
 
 # test
 if __name__ == "__main__":
@@ -106,4 +112,4 @@ if __name__ == "__main__":
     A = np.array(A, dtype=np.float32)
     terms = SVD(A, False)
     print(*terms, sep='\n\n')
-    print('\n', reduce(lambda Ak, term: Ak + term.expanded(), terms, np.zeros(A.shape)), '\n')
+    print('\n', sum_terms(terms), '\n')
