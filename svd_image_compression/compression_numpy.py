@@ -22,27 +22,25 @@ SOFTWARE.
 """
 
 import numpy as np
-from skimage.metrics import (
-    peak_signal_noise_ratio,
-    structural_similarity
-)
-import warnings
-warnings.filterwarnings("ignore")
 
 
-def get_metrics(uncompressed, compressed):
-    metrics = {
-        "psnr": 0,
-        "ssim": 0,
-        "compression": 0
-    }
-    metrics["psnr"] = np.round(
-                        peak_signal_noise_ratio(uncompressed, compressed, data_range=1),
-                        5
-                      )
-    metrics["ssim"] = np.round(
-                        structural_similarity(uncompressed, compressed, 
-                                              channel_axis=-1, data_range=1),
-                        5
-                      )
-    return metrics
+def compress_single_channel(channel, k):
+    U, S, Vt = np.linalg.svd(channel)
+    return U[:,:k] @ np.diag(S)[:k, :k] @ Vt[:k]
+
+
+def compress_image_numpy(image, k):
+    """Compress image using SVD
+
+    Args:
+        image (np.ndarray): Input image. Float32 and normalized
+        k (int): Number of components to keep
+
+    Returns:
+        np.ndarray: Result image
+    """
+    channels = image[..., 0], image[..., 1], image[..., 2]
+    compressed = [compress_single_channel(channels[i], k) for i in range(3)]
+    compressed = np.dstack(compressed)
+    
+    return np.clip(compressed, 0, 1)
