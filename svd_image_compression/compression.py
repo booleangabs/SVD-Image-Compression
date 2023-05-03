@@ -49,48 +49,34 @@ class SVDTerm:
             formated_list(self.right_vector.T)
         )
 
-def SVD(A: npt.NDArray[np.float32], use_numpy=False) -> list[SVDTerm]:
+def SVD(A: npt.NDArray[np.float32]) -> list[SVDTerm]:
     """Return the singular value decomposition of (n x d) matrix A as a
     list of the decomposition terms, σ・u・vᵀ
 
     Args:
         A (npt.NDArray[np.float32]): a (n x d) matrix ('n' rows and 'd' columns)
-        use_numpy (bool): If True, the SVD is computed using numpy's API
 
     Returns:
         list[SVDTerm]: A list of of the decomposition terms. When the terms are
         expanded() and summed, the result equals A.
     """
-    if use_numpy:
-        U, s, V = LA.svd(A)
-        terms = [
-            SVDTerm(
-                s[j],
-                U[:,j].reshape(-1, 1),
-                V[j].reshape(-1, 1)
-            )
-            for j in range(len(s))
-            if not is_zero(s[j])
-        ]
-        return terms
-    else:
-        # matrices must always have 2 dimensions, i.e., don't do np.array([1,2,3]), do np.array([[1,2,3]])
-        ATA = A.T @ A
-        # eigenvectors are already normalized
-        eig_vals, V = LA.eig(ATA)
-        sing_vals = eig_vals**(1/2)
-        
-        terms = [
-            SVDTerm(
-                sing_vals[j],
-                (A @ V[:,j].reshape((-1, 1)))/sing_vals[j],
-                V[:,j].reshape((-1, 1))
-            )
-            for j in range(len(sing_vals))
-            if not is_zero(sing_vals[j])
-        ]
-        terms.sort(key=lambda term: term.sing_value, reverse=True)
-        return terms
+    # matrices must always have 2 dimensions, i.e., don't do np.array([1,2,3]), do np.array([[1,2,3]])
+    ATA = A.T @ A
+    # eigenvectors are already normalized
+    eig_vals, V = LA.eig(ATA)
+    sing_vals = eig_vals**(1/2)
+    
+    terms = [
+        SVDTerm(
+            sing_vals[j],
+            (A @ V[:,j].reshape((-1, 1)))/sing_vals[j],
+            V[:,j].reshape((-1, 1))
+        )
+        for j in range(len(sing_vals))
+        if not is_zero(sing_vals[j])
+    ]
+    terms.sort(key=lambda term: term.sing_value, reverse=True)
+    return terms
 
 def sum_terms(term_list: list[SVDTerm], how_many: int = -1) -> npt.NDArray[np.float32]:
     if how_many == -1:
@@ -99,7 +85,7 @@ def sum_terms(term_list: list[SVDTerm], how_many: int = -1) -> npt.NDArray[np.fl
     a_term = term_list[0]
     m = a_term.left_vector.shape[0]
     n = a_term.right_vector.shape[0]
-    return reduce(lambda Ak, term: Ak + term.expanded(), terms[0:how_many], np.zeros((m, n)))
+    return reduce(lambda Ak, term: Ak + term.expanded(), term_list[0:how_many], np.zeros((m, n)))
 
 # test
 if __name__ == "__main__":

@@ -37,11 +37,12 @@ def get_metrics(uncompressed, compressed):
         "compression": 0
     }
     metrics["psnr"] = np.round(
-                        peak_signal_noise_ratio(uncompressed, compressed),
+                        peak_signal_noise_ratio(uncompressed, compressed, data_range=1),
                         5
                       )
     metrics["ssim"] = np.round(
-                        structural_similarity(uncompressed, compressed, channel_axis=-1),
+                        structural_similarity(uncompressed, compressed, 
+                                              channel_axis=-1, data_range=1),
                         5
                       )
     return metrics

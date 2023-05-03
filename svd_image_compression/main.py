@@ -23,6 +23,7 @@ SOFTWARE.
 
 import os
 import numpy as np
+from compression import sum_terms, SVD
 from tkinter import (
     Tk, 
     Label, 
@@ -96,7 +97,7 @@ class App(Tk):
         
     def __show_compressed(self, *args, **kwargs):
         if not(self.compressed_image is None) and (self.slider.get() > 0):
-            image = Image.fromarray(self.compressed_image)
+            image = Image.fromarray((self.compressed_image * 255).astype("uint8"))
             self.__update_image_field(image)
             
     def __update_image_field(self, image=None):
@@ -116,11 +117,21 @@ class App(Tk):
         path = askopenfilename(initialdir = working_dir, title = "Select Image", 
                                filetypes = (("PNG files", "*.png*"), ("all files", "*.*")))
         self.image = Image.open(path).convert("RGB")
-        self.uncompressed_image = np.asarray(self.image)
+        self.uncompressed_image = np.asarray(self.image).astype("float32") / 255
         k = min(self.uncompressed_image.shape[:2])
-        self.slider.config(to=k, length=min(500, k))
+        self.slider.config(to=k)
         self.slider.set(0)
         self.__update_image_field()
+        
+    def svd_send(self):
+        channels = []
+        n_components = self.slider.get()
+        for i in range(3):
+            terms = SVD(self.uncompressed_image[..., i])
+            compressed_channel = sum_terms(terms, n_components)
+            compressed_channel = np.clip(compressed_channel, 0, 1) 
+            channels.append(compressed_channel)
+        return np.dstack(channels).astype("float32")
         
     def update_image(self, slider_value, *args, **kwargs):
         if self.image == None:
@@ -130,22 +141,14 @@ class App(Tk):
         
         value = self.slider.get()
         
-        image = self.uncompressed_image
         if value > 0:
-            # Do stuff here
-            image = image * (value / self.slider.cget("to"))
-            image = image.astype("uint8")
-            # Stop doing stuff
-            
-            self.compressed_image = image.copy()
-            
+            self.compressed_image = self.svd_send()
             # Update label image
-            image = Image.fromarray(image)
+            image = Image.fromarray((self.compressed_image * 255).astype("uint8"))
             self.__update_image_field(image)
-            
         else:
             self.__show_original()
-            self.compressed_image = image.copy()
+            self.compressed_image = self.uncompressed_image.copy()
         self.show_metrics()
         
     def show_metrics(self):
