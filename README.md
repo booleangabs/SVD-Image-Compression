@@ -9,7 +9,7 @@ GUI application that performs image compression using Singular Value Decompositi
 python3 -m venv svd_image_compression
 source svd_image_compression/bin/activate
 python3 -m pip install -r requirements.txt
-python3 src/app.py
+python3 svd_image_compression/app.py
 ```
 
 ## Resource credits
