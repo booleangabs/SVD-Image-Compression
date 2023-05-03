@@ -30,7 +30,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def get_metrics(uncompressed, compressed, full_report = True):
+def get_metrics(uncompressed, compressed):
     metrics = {
         "psnr": 0,
         "ssim": 0,
@@ -40,9 +40,8 @@ def get_metrics(uncompressed, compressed, full_report = True):
                         peak_signal_noise_ratio(uncompressed, compressed),
                         5
                       )
-    if full_report:
-        metrics["ssim"] = np.round(
-                            structural_similarity(uncompressed, compressed, channel_axis=-1),
-                            5
-                          )
+    metrics["ssim"] = np.round(
+                        structural_similarity(uncompressed, compressed, channel_axis=-1),
+                        5
+                      )
     return metrics

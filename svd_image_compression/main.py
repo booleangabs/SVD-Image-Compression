@@ -40,9 +40,7 @@ import sys
 
 
 class App(Tk):
-    def __init__(self, full_report):
-        self.full = full_report
-        
+    def __init__(self):
         self.root = Tk()
         self.root.title("SVD Image Compression")
         width = self.root.winfo_screenwidth()               
@@ -83,9 +81,10 @@ class App(Tk):
         self.slider_label.pack()
 
         self.slider = Scale(self.root, from_= 0, to = 255, orient = HORIZONTAL, 
-                       tickinterval=50, length=500, command=self.update_image)
+                       tickinterval=50, length=500)
         self.slider.set(0)
         self.slider.pack()
+        self.slider.bind("<ButtonRelease-1>", func = self.update_image)
         
         self.image = None
         self.uncompressed_image = None
@@ -123,13 +122,13 @@ class App(Tk):
         self.slider.set(0)
         self.__update_image_field()
         
-    def update_image(self, slider_value):
+    def update_image(self, slider_value, *args, **kwargs):
         if self.image == None:
             return
         
         self.info.config(text="Hover to see original image")
         
-        value = int(slider_value)
+        value = self.slider.get()
         
         image = self.uncompressed_image
         if value > 0:
@@ -147,12 +146,12 @@ class App(Tk):
         else:
             self.__show_original()
             self.compressed_image = image.copy()
-        self.show_metrics() # IMPORTANT: comment this if it gets too slow
+        self.show_metrics()
         
     def show_metrics(self):
         if self.uncompressed_image is None or self.compressed_image is None:
             return
-        metrics = get_metrics(self.uncompressed_image, self.compressed_image, self.full)
+        metrics = get_metrics(self.uncompressed_image, self.compressed_image)
         self.psnr_report.config(text="PSNR (dB):" + f"{metrics['psnr']}".rjust(22))
         self.ssim_report.config(text="SSIM:" + f"{metrics['ssim']}".rjust(30))
         k = self.slider.get()
@@ -171,10 +170,7 @@ class App(Tk):
 
 
 if __name__ == "__main__":
-    full_report = True
-    if len(sys.argv) > 1:
-        full_report = bool(int(sys.argv[1]))
-    app = App(full_report)
+    app = App()
     app.run()
 
     
