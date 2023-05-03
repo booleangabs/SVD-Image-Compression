@@ -133,6 +133,9 @@ lib/
 lib64
 share
 
+# Windows
+Scripts/
+
 # Spyder project settings
 .spyderproject
 .spyproject
